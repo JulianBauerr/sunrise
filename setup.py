@@ -1,7 +1,6 @@
 import os
 
 from setuptools import setup, find_packages
-from pybind11.setup_helpers import Pybind11Extension, build_ext
 
 def read_requirements():
     with open('requirements.txt') as file:
@@ -28,17 +27,6 @@ try:
 except Exception:
     long_description = ""
 
-# Build the spex_tequila C++ backend from vendored sources (MIT, see THIRD-PARTY-LICENSE).
-# Vendoring avoids a circular dependency: the spex package itself depends on project-sunrise.
-ext_modules = [
-    Pybind11Extension(
-        "spex_tequila",
-        [os.path.join("spex_cpp", "spex.cpp")],
-        cxx_std=17,
-        include_dirs=[os.path.abspath(os.path.join("spex_cpp", "include"))],
-    ),
-]
-
 setup(
     name='project-sunrise',
     version=info["__version__"],
@@ -54,7 +42,4 @@ setup(
     package_data={
         '': [os.path.join('src')],"sunrise.CLPO.bin": ["*"],
     },
-    ext_modules=ext_modules,
-    cmdclass={"build_ext": build_ext},
-    zip_safe=False,
 )
