@@ -23,7 +23,7 @@ except ImportError:
 try:
     from .spex_expval import spex_circuit_simulator
     INSTALLED_FERMIONIC_BACKENDS["spex"] = spex_circuit_simulator
-except ImportError:
+except (ImportError, AttributeError):
     pass
 
 def simulate_fcircuit(U:FCircuit, variables:Union[Variables,dict], backend:str='tcc',**kwargs) -> QubitWaveFunction:

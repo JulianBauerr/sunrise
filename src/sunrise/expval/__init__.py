@@ -19,7 +19,7 @@ except ImportError:
 try:
     from .spex_expval import SpexExpval
     INSTALLED_FERMIONIC_BACKENDS["spex"] = SpexExpval
-except ImportError:
+except (ImportError, AttributeError):
     pass
 
 INSTALLED_FERMIONIC_BACKENDS["tequila"] = TequilaBraket
