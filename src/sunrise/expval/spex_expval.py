@@ -344,14 +344,21 @@ class SpexExpval:
                 terms.append(spex.FermionTerm(list(reversed(creation)), list(reversed(annihilation)), weight))
             operator = terms
         elif isinstance(operator, QubitHamiltonian):
-            qubit_operator = operator
-
-            def f(state_dict):
-                wvf = self.__civect_to_qwvf(state_dict)
-                wvf = wvf.apply_qubitoperator(qubit_operator)
-                return self.__qwvf_to_civect(wvf)
-
-            operator = f
+            # spex evaluates <phi|H|psi> for a Pauli hamiltonian in one call, so
+            # hand it the terms directly rather than building H|psi> in python.
+            # Its Pauli routines index qubits MSB-first while its fermionic
+            # states are LSB-indexed, so the indices are flipped here, once.
+            n_qubits = 2 * self.norb
+            terms = []
+            for pauli_string in operator.paulistrings:
+                weight = complex(pauli_string.coeff)
+                if abs(weight) < _ZERO_TOL:
+                    continue
+                term = spex.ExpPauliTerm()
+                term.pauli_map = {n_qubits - 1 - q: p.upper() for q, p in pauli_string.items()}
+                terms.append((term, weight))
+            # an operator that vanished entirely still has to evaluate to zero
+            operator = terms if terms else [spex.FermionTerm([], [], 0.0)]
         else:
             raise TequilaException(f"No operator {type(operator).__name__} supported")
 
@@ -388,7 +395,12 @@ class SpexExpval:
 
         if callable(self.operator):
             ket_state = self.operator(ket_state)
-        if isinstance(self.operator, list):
+        if isinstance(self.operator, list) and self.operator and isinstance(self.operator[0], tuple):
+            # list of (ExpPauliTerm, weight): a qubit hamiltonian, evaluated by spex
+            if not bra_state or not ket_state:
+                return 0.0
+            result = spex.expectation_value(bra_state, ket_state, self.operator, 2 * self.norb)
+        elif isinstance(self.operator, list):
             result = spex.expectation_value_fermionic(bra_state, ket_state, self.operator)
         else:
             result = spex.expectation_value_fermionic(bra_state, ket_state, [spex.FermionTerm([], [], 1.0)])
